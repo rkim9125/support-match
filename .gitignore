@@ -1,0 +1,25 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+
+# Env
+.env
+.env.*
+!.env.example
+.env.local
+
+# OS / Logs
+.DS_Store
+*.log
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# data dumps
+*.zip
+*.csv
+!support_workers_clean.json
