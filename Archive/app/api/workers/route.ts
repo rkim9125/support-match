@@ -8,16 +8,16 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const ALLOWED = [
-  "Sydney","Melbourne","Brisbane","Adelaide","Perth",
-  "Canberra","Hobart","Darwin",
-  "Gold Coast","Sunshine Coast","Newcastle","Wollongong","Geelong"
+  "Sydney", "Melbourne", "Brisbane", "Adelaide", "Perth",
+  "Canberra", "Hobart", "Darwin",
+  "Gold Coast", "Sunshine Coast", "Newcastle", "Wollongong", "Geelong"
 ];
 
 const titleCase = (s: string) =>
   s.toLowerCase().replace(/\s+/g, " ").trim().replace(/\b\w/g, c => c.toUpperCase());
 
-function cleanRegion(raw: any): string {
-  if (!raw) return "";
+function cleanRegion(raw: unknown): string {
+  if (raw == null) return "";
   let s = String(raw);
   s = s.split(/[,/|-]/)[0];
   s = titleCase(s);
@@ -50,14 +50,14 @@ export async function GET() {
     const parsed = Papa.parse<Row>(csv, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(), 
+      transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(),
     });
 
     let id = 0;
     const rows = (parsed.data as Row[])
       .map((r) => {
         const name = (r.name ?? "").trim();
-        const region = cleanRegion(r.region);       // only csv region
+        const region = cleanRegion(r.region);
         const isAu = /^(true|yes|y|1)$/i.test(String(r.is_australian ?? ""));
         const exp = Number(r.experience_years ?? 0) || 0;
 
@@ -73,12 +73,13 @@ export async function GET() {
           name_lc: name.toLowerCase(),
         };
       })
-      .filter((x) => x.region);                     // no region
+      .filter((x) => x.region);
 
     rows.sort((a, b) => b.experience_years - a.experience_years);
 
     return NextResponse.json(rows, { headers: { "Cache-Control": "no-store" } });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "failed" }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

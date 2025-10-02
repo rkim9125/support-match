@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -263,12 +265,9 @@ export default function SupportMatchSite() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <PrimaryButton>Post a request</PrimaryButton>
-              <a
-                href="#request"
-                className="inline-flex items-center gap-2 font-semibold text-pink-600 hover:text-pink-700"
-              >
+              <Link href="/#request" className="inline-flex items-center gap-2 font-semibold text-pink-600 hover:text-pink-700">
                 Book a quick demo <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-slate-600">
               <div className="flex items-center gap-2"><Check className="h-4 w-4 text-pink-600" /> Free meet & greet</div>
