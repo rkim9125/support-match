@@ -1,12 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { ReactNode } from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
-const Container: React.FC<React.PropsWithChildren<{ className?: string }>> = ({ children, className="" }) => (
-  <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>{children}</div>
+type ContainerProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+const Container: React.FC<ContainerProps> = ({ children, className = "" }) => (
+  <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>
+    {children}
+  </div>
 );
+
 const Tag: React.FC<React.PropsWithChildren> = ({ children }) => (
   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{children}</span>
 );
