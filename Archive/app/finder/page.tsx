@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React from "react";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
@@ -9,7 +9,13 @@ type ContainerProps = {
   className?: string;
 };
 
-const Container: React.FC<ContainerProps> = ({ children, className = "" }) => (
+const Container = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
   <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>
     {children}
   </div>
