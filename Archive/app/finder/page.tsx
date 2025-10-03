@@ -5,7 +5,7 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 type ContainerProps = {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 };
 
