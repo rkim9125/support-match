@@ -1,87 +1,58 @@
-// app/api/workers/route.ts
+// app/api/request/route.ts
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
-import Papa from "papaparse";
+import { Resend } from "resend";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-const ALLOWED = [
-  "Sydney", "Melbourne", "Brisbane", "Adelaide", "Perth",
-  "Canberra", "Hobart", "Darwin",
-  "Gold Coast", "Sunshine Coast", "Newcastle", "Wollongong", "Geelong",
-];
-
-const titleCase = (s: string) =>
-  s.toLowerCase().replace(/\s+/g, " ").trim().replace(/\b\w/g, c => c.toUpperCase());
-
-function cleanRegion(raw: unknown): string {
-  if (raw == null) return "";
-  let s = String(raw);
-  s = s.split(/[,/|-]/)[0];
-  s = titleCase(s);
-  if (/^nsw$/i.test(s)) return "Sydney";
-  if (/^vic$/i.test(s)) return "Melbourne";
-  if (/^qld$/i.test(s)) return "Brisbane";
-  if (/^sa$/i.test(s))  return "Adelaide";
-  if (/^wa$/i.test(s))  return "Perth";
-  if (/^act$/i.test(s)) return "Canberra";
-  if (/^tas$/i.test(s)) return "Hobart";
-  if (/^nt$/i.test(s))  return "Darwin";
-  return ALLOWED.includes(s) ? s : "";
-}
-
-type Row = {
-  name?: string;
-  region?: string;
-  is_australian?: string | boolean | number;
-  experience_years?: string | number;
-  qualification?: string;
-  previous_role?: string;
-  previous_work_place?: string;
+type RequestBody = {
+  name: string;
+  email: string; // replyTo로 사용할 발신자 이메일
+  company?: string;
+  location?: string;
+  role?: string;
+  phone?: string;
+  needs?: string;
 };
 
-export async function GET() {
-  try {
-    // public/support_workers_clean.csv 읽기
-    const filePath = path.join(process.cwd(), "public", "support_workers_clean.csv");
-    const csv = await fs.readFile(filePath, "utf8");
+function isValidEmail(s: string | undefined): s is string {
+  if (!s) return false;
+  // very light validation; Resend는 자체적으로 더 엄격 체크함
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
 
-    const parsed = Papa.parse<Row>(csv, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(), // BOM 방지
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as RequestBody;
+
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+
+    const text = `
+Name: ${body.name}
+Email: ${body.email}
+Company: ${body.company || ""}
+Location: ${body.location || ""}
+Role: ${body.role || ""}
+Phone: ${body.phone || ""}
+Supports / Needs:
+${body.needs || ""}
+    `.trim();
+
+    // replyTo는 유효한 이메일만 넣기 (Resend 422 방지)
+    const replyTo = isValidEmail(body.email) ? body.email : undefined;
+
+    await resend.emails.send({
+      from: `Support Match <${process.env.FROM_EMAIL || "onboarding@resend.dev"}>`,
+      to: process.env.TO_EMAIL!, // Vercel 환경변수 설정 필요
+      replyTo,                   // undefined면 필드 자체가 빠짐
+      subject: "New support request",
+      text,
     });
 
-    let id = 0;
-    const rows = (parsed.data as Row[])
-      .map((r) => {
-        const name = (r.name ?? "").trim();
-        const region = cleanRegion(r.region);
-        const isAu = /^(true|yes|y|1)$/i.test(String(r.is_australian ?? ""));
-        const exp = Number(r.experience_years ?? 0) || 0;
-
-        return {
-          id: String(++id),
-          name,
-          region,
-          is_australian: isAu,
-          experience_years: exp,
-          qualification: r.qualification ?? "",
-          previous_role: r.previous_role ?? "",
-          previous_work_place: r.previous_work_place ?? "",
-          name_lc: name.toLowerCase(),
-        };
-      })
-      .filter((x) => x.region);
-
-    rows.sort((a, b) => b.experience_years - a.experience_years);
-
-    return NextResponse.json(rows, { headers: { "Cache-Control": "no-store" } });
-  } catch (e: any) {
-    console.error("[/api/workers] failed:", e);
-    return NextResponse.json({ error: e?.message ?? "failed" }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown error";
+    console.error("[/api/request] send failed:", err);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
