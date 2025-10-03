@@ -1,30 +1,26 @@
+// app/finder/page.tsx
 "use client";
 
 import React from "react";
-import { MapPin } from "lucide-react";
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 
+/** ---------- Small UI helpers ---------- */
 type ContainerProps = {
   children: React.ReactNode;
   className?: string;
 };
-
-const Container = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>
-    {children}
-  </div>
+const Container: React.FC<ContainerProps> = ({ children, className = "" }) => (
+  <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>{children}</div>
 );
 
 const Tag: React.FC<React.PropsWithChildren> = ({ children }) => (
-  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{children}</span>
+  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+    {children}
+  </span>
 );
 
+/** ---------- Data types ---------- */
 type Candidate = {
   id: string;
   name: string;
@@ -38,40 +34,53 @@ type Candidate = {
 };
 
 export default function FinderPage() {
+  /** ---------- state ---------- */
   const [data, setData] = React.useState<Candidate[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   // filters
-  const [region, setRegion] = React.useState("All");
-  const [isAu, setIsAu] = React.useState("Any"); // Any | Yes | No
-  const [minExp, setMinExp] = React.useState(0);
-  const [qInput, setQInput] = React.useState("");
+  const [region, setRegion] = React.useState<"All" | string>("All");
+  const [isAu, setIsAu] = React.useState<"Any" | "Yes" | "No">("Any");
+  const [minExp, setMinExp] = React.useState<number>(0);
+  const [qInput, setQInput] = React.useState<string>("");
 
-  // 입력 디바운스(250ms)
-  const [q, setQ] = React.useState("");
+  // debounced query
+  const [q, setQ] = React.useState<string>("");
   React.useEffect(() => {
     const h = setTimeout(() => setQ(qInput.trim().toLowerCase()), 250);
     return () => clearTimeout(h);
   }, [qInput]);
 
-  // 데이터 로드 (JSON)
+  /** ---------- fetch ---------- */
   React.useEffect(() => {
     let alive = true;
     setLoading(true);
     fetch("/api/workers")
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("Failed to load")))
-      .then((rows: Candidate[]) => { if (alive) { setData(rows); setLoading(false); } })
-      .catch((e) => { if (alive) { setError(e.message ?? "Error"); setLoading(false); } });
-    return () => { alive = false; };
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load"))))
+      .then((rows: Candidate[]) => {
+        if (!alive) return;
+        setData(rows);
+        setLoading(false);
+      })
+      .catch((e: unknown) => {
+        if (!alive) return;
+        const msg = e instanceof Error ? e.message : "Error";
+        setError(msg);
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const regions = React.useMemo(
-    () => ["All", ...Array.from(new Set(data.map(c => c.region))).sort((a,b)=>a.localeCompare(b))],
-    [data]
-  );
+  /** ---------- derived ---------- */
+  const regions = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const c of data) set.add(c.region);
+    return ["All", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [data]);
 
-  // 필터 (이름/지역/호주인/경력만)
   const filtered = React.useMemo(() => {
     return data.filter((c) => {
       if (region !== "All" && c.region !== region) return false;
@@ -80,13 +89,13 @@ export default function FinderPage() {
       if (q && !c.name_lc.includes(q)) return false;
       return true;
     });
-    // 정렬은 서버에서 미리 경험년수 desc로 해왔으니 생략
   }, [data, region, isAu, minExp, q]);
 
-  // 페이지네이션
-  const [page, setPage] = React.useState(1);
+  // pagination
+  const [page, setPage] = React.useState<number>(1);
   const pageSize = 24;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
   React.useEffect(() => setPage(1), [region, isAu, minExp, q]);
 
   const paged = React.useMemo(() => {
@@ -94,10 +103,13 @@ export default function FinderPage() {
     return filtered.slice(start, start + pageSize);
   }, [filtered, page]);
 
+  /** ---------- render ---------- */
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <Container className="py-10 sm:py-14">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Find your perfect support worker</h1>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          Find your perfect support worker
+        </h1>
 
         {loading && <p className="mt-4 text-slate-600">Loading candidates…</p>}
         {error && <p className="mt-4 text-red-600">Error: {error}</p>}
@@ -108,26 +120,47 @@ export default function FinderPage() {
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Region</label>
-                <select className="rounded-xl border border-slate-300 px-3 py-2" value={region} onChange={(e)=>setRegion(e.target.value)}>
-                  {regions.map(r => <option key={r}>{r}</option>)}
+                <select
+                  className="rounded-xl border border-slate-300 px-3 py-2"
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                >
+                  {regions.map((r) => (
+                    <option key={r}>{r}</option>
+                  ))}
                 </select>
               </div>
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Australian (citizen/PR)</label>
-                <select className="rounded-xl border border-slate-300 px-3 py-2" value={isAu} onChange={(e)=>setIsAu(e.target.value)}>
-                  <option>Any</option><option>Yes</option><option>No</option>
+                <select
+                  className="rounded-xl border border-slate-300 px-3 py-2"
+                  value={isAu}
+                  onChange={(e) => setIsAu(e.target.value as "Any" | "Yes" | "No")}
+                >
+                  <option>Any</option>
+                  <option>Yes</option>
+                  <option>No</option>
                 </select>
               </div>
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Min experience (years)</label>
-                <input type="number" min={0} step={0.5} className="rounded-xl border border-slate-300 px-3 py-2"
-                       value={minExp} onChange={(e)=>setMinExp(Number(e.target.value))}/>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  className="rounded-xl border border-slate-300 px-3 py-2"
+                  value={minExp}
+                  onChange={(e) => setMinExp(Number(e.target.value))}
+                />
               </div>
               <div className="grid gap-1">
                 <label className="text-sm font-medium">Name</label>
-                <input className="rounded-xl border border-slate-300 px-3 py-2"
-                       placeholder="e.g. Arshdeep"
-                       value={qInput} onChange={(e)=>setQInput(e.target.value)}/>
+                <input
+                  className="rounded-xl border border-slate-300 px-3 py-2"
+                  placeholder="e.g. Arshdeep"
+                  value={qInput}
+                  onChange={(e) => setQInput(e.target.value)}
+                />
               </div>
             </div>
 
@@ -175,15 +208,29 @@ export default function FinderPage() {
                       Save
                     </button>
                   </div>
-                                  </div>
+                </div>
               ))}
             </div>
 
             {/* Pagination */}
             <div className="mt-6 flex items-center justify-center gap-2">
-              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="rounded-xl border px-3 py-1 disabled:opacity-50">Prev</button>
-              <span className="text-sm text-slate-600">{page} / {totalPages}</span>
-              <button disabled={page===totalPages} onClick={()=>setPage(p=>p+1)} className="rounded-xl border px-3 py-1 disabled:opacity-50">Next</button>
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="rounded-xl border px-3 py-1 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-slate-600">
+                {page} / {totalPages}
+              </span>
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-xl border px-3 py-1 disabled:opacity-50"
+              >
+                Next
+              </button>
             </div>
           </>
         )}
