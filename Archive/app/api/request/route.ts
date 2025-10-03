@@ -33,7 +33,7 @@ ${body.needs || ""}
     await resend.emails.send({
       from: `Support Match <${process.env.FROM_EMAIL || "onboarding@resend.dev"}>`,
       to: process.env.TO_EMAIL!,               // Vercel 환경변수에 설정
-      reply_to: body.email,
+      replyTo: body.email,
       subject: "New support request",
       text,
     });
