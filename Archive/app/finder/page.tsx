@@ -2,6 +2,7 @@
 
 import React from "react";
 import { MapPin } from "lucide-react";
+import Link from "next/link";
 
 const Container: React.FC<React.PropsWithChildren<{ className?: string }>> = ({ children, className="" }) => (
   <div className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${className}`}>{children}</div>
@@ -147,14 +148,20 @@ export default function FinderPage() {
                     </p>
                   )}
                   <div className="mt-4 flex gap-3">
-                    <a href="/#request" className="rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm font-semibold text-white">
+                    <Link
+                      href="/#request"
+                      className="rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-2 text-sm font-semibold text-white"
+                    >
                       Request intro
-                    </a>
-                    <a href="#" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800">
+                    </Link>
+                    <button
+                      type="button"
+                      className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800"
+                    >
                       Save
-                    </a>
+                    </button>
                   </div>
-                </div>
+                                  </div>
               ))}
             </div>
 
