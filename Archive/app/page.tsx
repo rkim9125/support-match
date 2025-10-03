@@ -267,8 +267,7 @@ export default function SupportMatchSite() {
             <GhostButton href="tel:1300543123" icon={Phone}>
               1300 543 123
             </GhostButton>
-            <PrimaryButton href="#request" />
-            Get started
+            <PrimaryButton href="#request">Get started</PrimaryButton>
           </div>
         </Container>
       </header>
