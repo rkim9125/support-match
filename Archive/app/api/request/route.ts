@@ -1,37 +1,87 @@
+// app/api/workers/route.ts
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import fs from "node:fs/promises";
+import path from "node:path";
+import Papa from "papaparse";
 
-export const runtime = "nodejs";         // Vercel 서버런타임 명시
-export const dynamic = "force-dynamic";  // 캐싱 방지(폼 POST는 매번 처리)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const ALLOWED = [
+  "Sydney", "Melbourne", "Brisbane", "Adelaide", "Perth",
+  "Canberra", "Hobart", "Darwin",
+  "Gold Coast", "Sunshine Coast", "Newcastle", "Wollongong", "Geelong",
+];
 
-export async function POST(req: Request) {
+const titleCase = (s: string) =>
+  s.toLowerCase().replace(/\s+/g, " ").trim().replace(/\b\w/g, c => c.toUpperCase());
+
+function cleanRegion(raw: unknown): string {
+  if (raw == null) return "";
+  let s = String(raw);
+  s = s.split(/[,/|-]/)[0];
+  s = titleCase(s);
+  if (/^nsw$/i.test(s)) return "Sydney";
+  if (/^vic$/i.test(s)) return "Melbourne";
+  if (/^qld$/i.test(s)) return "Brisbane";
+  if (/^sa$/i.test(s))  return "Adelaide";
+  if (/^wa$/i.test(s))  return "Perth";
+  if (/^act$/i.test(s)) return "Canberra";
+  if (/^tas$/i.test(s)) return "Hobart";
+  if (/^nt$/i.test(s))  return "Darwin";
+  return ALLOWED.includes(s) ? s : "";
+}
+
+type Row = {
+  name?: string;
+  region?: string;
+  is_australian?: string | boolean | number;
+  experience_years?: string | number;
+  qualification?: string;
+  previous_role?: string;
+  previous_work_place?: string;
+};
+
+export async function GET() {
   try {
-    const body = await req.json();
-    const text = [
-      `Name: ${body.name}`,
-      `Email: ${body.email}`,
-      `Company: ${body.company || "-"}`,
-      `Location: ${body.location || "-"}`,
-      `Role: ${body.role || "-"}`,
-      `Phone: ${body.phone || "-"}`,
-      "",
-      "Needs:",
-      body.needs || "-",
-    ].join("\n");
+    // public/support_workers_clean.csv 읽기
+    const filePath = path.join(process.cwd(), "public", "support_workers_clean.csv");
+    const csv = await fs.readFile(filePath, "utf8");
 
-    const result = await resend.emails.send({
-      from: process.env.FROM_EMAIL || "onboarding@resend.dev",
-      to: process.env.TO_EMAIL!,                 // 환경변수 필요
-      replyTo: body.email,                       // ← 여기!
-      subject: "New support request",
-      text,
+    const parsed = Papa.parse<Row>(csv, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.replace(/^\uFEFF/, "").trim(), // BOM 방지
     });
 
-    return NextResponse.json({ ok: true, id: result.id ?? null });
-  } catch (e) {
-    console.error("request API error", e);
-    return NextResponse.json({ ok: false, error: "send_failed" }, { status: 500 });
+    let id = 0;
+    const rows = (parsed.data as Row[])
+      .map((r) => {
+        const name = (r.name ?? "").trim();
+        const region = cleanRegion(r.region);
+        const isAu = /^(true|yes|y|1)$/i.test(String(r.is_australian ?? ""));
+        const exp = Number(r.experience_years ?? 0) || 0;
+
+        return {
+          id: String(++id),
+          name,
+          region,
+          is_australian: isAu,
+          experience_years: exp,
+          qualification: r.qualification ?? "",
+          previous_role: r.previous_role ?? "",
+          previous_work_place: r.previous_work_place ?? "",
+          name_lc: name.toLowerCase(),
+        };
+      })
+      .filter((x) => x.region);
+
+    rows.sort((a, b) => b.experience_years - a.experience_years);
+
+    return NextResponse.json(rows, { headers: { "Cache-Control": "no-store" } });
+  } catch (e: any) {
+    console.error("[/api/workers] failed:", e);
+    return NextResponse.json({ error: e?.message ?? "failed" }, { status: 500 });
   }
 }
