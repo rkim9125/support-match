@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://www.supportmatch.com.au/</loc>
+        <priority>1.00</priority>
+    </url>
+    <url>
+        <loc>https://www.supportmatch.com.au/finder</loc>
+        <priority>0.90</priority>
+    </url>
+    <url>
+        <loc>https://www.supportmatch.com.au/#request</loc>
+        <priority>0.80</priority>
+    </url>
+    <url>
+        <loc>https://www.supportmatch.com.au/#howitworks</loc>
+        <priority>0.70</priority>
+    </url>
+</urlset>
