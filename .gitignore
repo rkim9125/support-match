@@ -22,4 +22,4 @@ __pycache__/
 # data dumps
 *.zip
 *.csv
-!support_workers_clean.json
+!support_workers_clean.csv
