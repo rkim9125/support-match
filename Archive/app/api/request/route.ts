@@ -42,9 +42,9 @@ ${body.needs || ""}
     const replyTo = isValidEmail(body.email) ? body.email : undefined;
 
     await resend.emails.send({
-      from: `Support Match <${process.env.FROM_EMAIL || "onboarding@resend.dev"}>`,
-      to: process.env.TO_EMAIL!, // Vercel 환경변수 설정 필요
-      replyTo,                   // undefined면 필드 자체가 빠짐
+      from: "Support Match <admin@supportmatch.com.au>",  // ← 고정
+      to: process.env.TO_EMAIL!,
+      replyTo,
       subject: "New support request",
       text,
     });
