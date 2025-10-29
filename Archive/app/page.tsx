@@ -786,7 +786,7 @@ export default function SupportMatchSite() {
             <h5 className="font-semibold">Get in touch</h5>
             <ul className="mt-3 space-y-2 text-slate-600">
               <li className="flex items-center gap-2"><Phone className="h-4 w-4" /> 1300 543 123</li>
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> hello@supportmatch.au</li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> admin@supportmatch.com.au</li>
             </ul>
           </div>
         </Container>
